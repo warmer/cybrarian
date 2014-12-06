@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require_relative 'common.rb'
+
 require 'gdbm'
 require 'digest/md5'
 require 'json'
@@ -48,45 +50,6 @@ file_list = Dir.glob(ARGV[0])
 @@dbs = {}
 
 @@ext = GDBM.new('extensions.db')
-
-def db_for(ext)
-  unless ext and ext != ""
-    ext = 'NONE'
-  end
-
-  @@dbs[ext] ||= GDBM.new(ext + '.db')
-end
-
-def dirs_for(f, root = '/')
-  dirs = []
-
-  f = File.dirname(f)
-  while f != root
-    dirs << File.basename(f)
-    f = File.dirname(f)
-  end
-
-  dirs
-end
-
-def meta_for(f)
-  meta = {}
-
-  meta[:name] = File.basename(f)
-  meta[:size] = File.size(f)
-  meta[:atime] = File.atime(f)
-  meta[:ctime] = File.ctime(f)
-  meta[:mtime] = File.mtime(f)
-  meta[:apath] = File.absolute_path(f)
-  meta[:dirs] = dirs_for(f)
-  if File.size(f) <= MAX_FILE_SIZE
-    meta[:md5] = Digest::MD5.hexdigest( File.read(f) )
-  else
-    meta[:md5] = nil
-  end
-
-  meta
-end
 
 checked = 0
 db_miss = 0
