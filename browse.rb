@@ -84,6 +84,37 @@ def do_cmd(path, args)
   path
 end
 
+def auto_complete(path, input, cursor)
+  args = input.strip.split
+  cmd = args[0]
+
+  case cmd
+    when 'cd'
+      meta = JSON.parse(@@dir_db[path])
+      children = meta['children']
+      if children
+        children = children.reject {|dir, meta| !meta or !meta['dir'] }
+        # for now, ignore the cursor location
+        if args.size == 1
+          # only 'cd' - nothing else has been typed yet
+          if children.size == 1
+            dest = children.keys[0].split(path)[1]
+            input = "cd #{dest}"
+            cursor = input.size
+            prompt(path, input)
+          else
+          end
+        elsif args.size == 2
+          # part of a directory has been typed - look for matches
+        end
+      else
+        prompt(path, input)
+      end
+  end
+
+  [input, cursor]
+end
+
 def prompt(path, cmd = '')
   print "\r#{path}> #{cmd}"
 end
@@ -131,7 +162,7 @@ else
         char = char_in
         case char
         when "\t"
-          print "\t"
+          cmd, cursor = auto_complete(path, cmd, cursor)
         when "\r"
           print "\r\n"
           break
