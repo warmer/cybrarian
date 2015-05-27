@@ -4,6 +4,7 @@ require 'gdbm'
 require 'digest/md5'
 require 'json'
 require 'io/console'
+require_relative 'common.rb'
 
 def char_in
   input = nil
@@ -27,22 +28,30 @@ end
 def ls(ref, objs)
   dir = @@dir_db[ref]
 
-  unless dir
-    puts "ls: directory not found in index: #{ref}"
-  end
+  puts "ls: directory not found in index: #{ref}" unless dir
 
   dir = JSON.parse(dir)
 
+  # finds all items in the given directory
   to_read = dir['children']
 
+  # ls specific items in the directory
   if objs and objs.size > 0
+    # TODO: recursively call any items that are also directories
     objs.map!{|obj| File.join(ref, obj)}
+    # TODO: print 'no such file or directory' when obj not found
     to_read.reject! {|file| not objs.include?(File.join(file))}
   end
 
+  ref += '/' unless ref[-1] == '/'
+
+  line = ''
   to_read.each do |path, detail|
-    puts path.split(ref)[1]
+    line += ' ' unless line == ''
+    line += blue(path.split(ref)[1]) if detail['dir']
+    line += path.split(ref)[1] if detail['file']
   end
+  puts line
 end
 
 def cd(ref, args)
@@ -87,6 +96,14 @@ end
 def auto_complete(path, input, cursor)
   args = input.strip.split
   cmd = args[0]
+  puts "## DEBUG ##"
+  puts args.inspect
+  puts path.inspect
+  puts cursor.inspect
+  puts "## DEBUG ##"
+  prompt(path, input)
+
+  # TODO: add '/' to the end of all paths so they match and display easier (when split)
 
   case cmd
     when 'cd'
@@ -103,14 +120,55 @@ def auto_complete(path, input, cursor)
             cursor = input.size
             prompt(path, input)
           else
+            puts "\n#{input}"
+            prompt(path, args)
           end
         elsif args.size == 2
+          frag = args[1]
+          matches = children.select do |name, meta|
+            meta['dir'] and name =~ /^#{frag}/
+          end
+          puts "## DEBUG ##"
+          puts "Matches: #{matches}"
+          puts "## DEBUG ##"
+          prompt(path, input)
+
+          # multiple matches returned
+          if matches.size > 1
+            puts "## DEBUG ##"
+            puts "matches.size: #{matches.size}"
+            puts "## DEBUG ##"
+
+            options = matches.keys.sort.join(' ')
+            puts blue(options)
+            prompt(path, input)
+          # a single match returned
+          elsif matches.size == 1
+            puts "## DEBUG ##"
+            puts "matches.size: #{matches.size}"
+            puts "## DEBUG ##"
+
+
+
+            dest = matches.keys[0]
+            input = "cd #{dest}"
+            cursor = input.size
+            prompt(path, input)
+          # no matches
+          else
+            puts "## DEBUG ##"
+            puts "matches.size: #{matches.size}"
+            puts "## DEBUG ##"
+
+
+            # do nothing
+          end
           # part of a directory has been typed - look for matches
+          prompt(path, input)
         end
-      else
-        prompt(path, input)
       end
-  end
+      # if no children - nothing to do
+  end # case
 
   [input, cursor]
 end

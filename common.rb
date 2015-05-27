@@ -15,6 +15,22 @@ def pretty_bytes(raw)
   pretty
 end
 
+def color(txt = '', code)
+  "\033[#{code}m#{txt}\033[0m"
+end
+
+def red(txt)
+  color(txt, '31')
+end
+
+def green(txt)
+  color(txt, '32')
+end
+
+def blue(txt)
+  color(txt, '34')
+end
+
 def db_for(ext)
   unless ext and ext != ""
     ext = 'NONE'
